@@ -9,6 +9,7 @@ import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.util.Base64
 import io.flutter.Log
+import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.JSONMethodCodec
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
@@ -17,25 +18,35 @@ import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.PluginRegistry.Registrar
 import org.json.JSONArray
 import java.io.ByteArrayOutputStream
-import java.lang.Exception
-
 
 
 const val METHOD_CHANNEL = "dev.wurikiji.flutter_package_manager.method_channel"
 const val TAG = "Flutter Package Manager"
-class FlutterPackageManagerPlugin: MethodCallHandler {
+class FlutterPackageManagerPlugin: MethodCallHandler, FlutterPlugin {
   companion object {
     var sContext: Context? = null
+    var mChannel: MethodChannel? = null
     @JvmStatic
     fun registerWith(registrar: Registrar) {
-      val channel = MethodChannel(registrar.messenger(),
+      mChannel = MethodChannel(registrar.messenger(),
               METHOD_CHANNEL,
               JSONMethodCodec.INSTANCE)
-      channel.setMethodCallHandler(FlutterPackageManagerPlugin())
+      mChannel!!.setMethodCallHandler(FlutterPackageManagerPlugin())
       sContext = registrar.context().applicationContext
       Log.i(TAG, "Register with ${registrar.context().packageName}")
     }
   }
+
+  override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+    mChannel = MethodChannel(binding.binaryMessenger, METHOD_CHANNEL)
+    mChannel!!.setMethodCallHandler(this)
+    sContext = binding.applicationContext
+  }
+
+  override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+    mChannel?.setMethodCallHandler(null)
+  }
+
 
   override fun onMethodCall(call: MethodCall, result: Result) {
     when(call.method) {
